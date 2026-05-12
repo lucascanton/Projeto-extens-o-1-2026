@@ -1,0 +1,1190 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Core Impact</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Orbitron:wght@400;700&family=Share+Tech+Mono&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --c-bg:     #0a0a12;
+  --c-bg2:    #111122;
+  --c-accent: #00e5ff;
+  --c-yellow: #ffe135;
+  --c-red:    #ff3b3b;
+  --c-green:  #00ff88;
+  --c-purple: #b44fff;
+  --c-text:   #e8e8f0;
+  --c-muted:  #6a6a8a;
+  --c-panel:  #16162a;
+  --c-border: #2a2a4a;
+  --pixel: 'Press Start 2P', monospace;
+  --tech:  'Orbitron', sans-serif;
+  --mono:  'Share Tech Mono', monospace;
+
+  /* 720p base — scales via clamp */
+  --scale: clamp(0.55, 1.4vw, 1);
+}
+
+html, body {
+  width: 100%;
+  min-height: 100vh;
+  background: #06060f;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  font-family: var(--tech);
+  color: var(--c-text);
+}
+
+/* ══════════════════════════════════════════
+   GAME SHELL — fixed 1280×720 canvas that
+   scales to fit any viewport
+══════════════════════════════════════════ */
+.game-shell {
+  width: 1280px;
+  height: 720px;
+  background: var(--c-bg);
+  position: relative;
+  overflow: hidden;
+  transform-origin: top center;
+  /* JS sets transform: scale() at runtime */
+  flex-shrink: 0;
+}
+
+/* ── TOP NAV (prototype tabs) ── */
+.nav {
+  display: flex;
+  gap: 3px;
+  padding: 8px 12px;
+  background: var(--c-panel);
+  border-bottom: 1px solid var(--c-border);
+  flex-wrap: wrap;
+  position: relative;
+  z-index: 10;
+}
+.nav button {
+  font-family: var(--pixel);
+  font-size: 8px;
+  padding: 5px 9px;
+  background: transparent;
+  border: 1px solid var(--c-border);
+  color: var(--c-muted);
+  cursor: pointer;
+  border-radius: 3px;
+  transition: all .15s;
+  white-space: nowrap;
+}
+.nav button.active  { border-color: var(--c-accent); color: var(--c-accent); background: rgba(0,229,255,.08); }
+.nav button:hover:not(.active) { border-color: #444466; color: var(--c-text); }
+
+/* ── SCREENS ── */
+.screen {
+  display: none;
+  position: absolute;
+  top: 40px; left: 0; right: 0; bottom: 0;
+  overflow-y: auto;
+  padding: 20px 28px 24px;
+}
+.screen.active { display: block; }
+/* scrollbar styling */
+.screen::-webkit-scrollbar { width: 5px; }
+.screen::-webkit-scrollbar-track { background: var(--c-bg); }
+.screen::-webkit-scrollbar-thumb { background: var(--c-border); border-radius: 3px; }
+
+/* ══════════════════════════════════════════
+   MENU PRINCIPAL
+══════════════════════════════════════════ */
+.menu-bg {
+  height: 100%;
+  background: linear-gradient(180deg,#0a0a18 0%,#0d0d2a 55%,#080814 100%);
+  border: 1px solid var(--c-border);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  padding: 28px 24px;
+  gap: 0;
+}
+.menu-bg::before {
+  content:'';
+  position:absolute; top:0; left:0; right:0; height:2px;
+  background:linear-gradient(90deg,transparent,var(--c-accent),transparent);
+}
+.stars { position:absolute; inset:0; pointer-events:none; }
+.star  { position:absolute; background:#fff; border-radius:50%; }
+
+.game-logo {
+  font-family: var(--pixel);
+  font-size: clamp(18px,2.6vw,34px);
+  letter-spacing: 3px;
+  color: var(--c-yellow);
+  text-shadow: 0 0 24px rgba(255,225,53,.5);
+  margin-bottom: 6px;
+  position: relative;
+}
+.game-logo span { color: var(--c-accent); }
+
+.logo-sub {
+  font-family: var(--pixel);
+  font-size: clamp(6px,.7vw,9px);
+  color: var(--c-muted);
+  letter-spacing: 4px;
+  margin-bottom: 28px;
+  position: relative;
+}
+
+.platform-art { position:relative; margin-bottom: 28px; }
+.platform-art svg { width: 380px; height: 110px; }
+
+.menu-items {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  position: relative;
+  width: 100%;
+}
+
+.menu-btn {
+  font-family: var(--pixel);
+  font-size: clamp(8px,1vw,12px);
+  padding: 13px 0;
+  width: 280px;
+  background: transparent;
+  border: 1px solid var(--c-border);
+  color: var(--c-text);
+  cursor: pointer;
+  letter-spacing: 1px;
+  transition: all .15s;
+  position: relative;
+  text-transform: uppercase;
+  text-align: center;
+}
+.menu-btn:hover, .menu-btn.primary {
+  border-color: var(--c-accent); color: var(--c-accent);
+  background: rgba(0,229,255,.06);
+}
+.menu-btn.primary { border-width:2px; box-shadow: 0 0 14px rgba(0,229,255,.22); }
+.menu-btn::before { content:'▶'; position:absolute; left:14px; opacity:0; font-size:7px; transition:opacity .1s; }
+.menu-btn:hover::before { opacity:1; }
+
+.version-tag { font-family:var(--mono); font-size:11px; color:var(--c-muted); position:relative; }
+
+/* ══════════════════════════════════════════
+   SELEÇÃO DE FASES
+══════════════════════════════════════════ */
+.phase-header {
+  font-family:var(--pixel); font-size:10px;
+  color:var(--c-accent); letter-spacing:2px; margin-bottom:18px;
+}
+.phase-grid {
+  display: grid;
+  grid-template-columns: repeat(3,1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.phase-card {
+  background:var(--c-panel); border:1px solid var(--c-border);
+  border-radius:6px; padding:14px 10px; text-align:center;
+  cursor:pointer; transition:all .15s; position:relative; overflow:hidden;
+}
+.phase-card:hover:not(.locked){ border-color:var(--c-accent); background:rgba(0,229,255,.05); }
+.phase-card.locked { opacity:.4; cursor:not-allowed; }
+.phase-card.completed { border-color:var(--c-green); }
+.phase-card.completed::after {
+  content:'✓'; position:absolute; top:6px; right:8px;
+  color:var(--c-green); font-size:13px; font-weight:bold;
+}
+.phase-num  { font-family:var(--pixel); font-size:18px; color:var(--c-yellow); margin-bottom:6px; }
+.phase-name { font-family:var(--pixel); font-size:8px; color:var(--c-text); margin-bottom:8px; line-height:1.7; }
+.phase-stars{ color:var(--c-yellow); font-size:12px; }
+.phase-stars .empty { color:var(--c-border); }
+.phase-lock { font-size:18px; margin-bottom:6px; }
+
+.progress-bar-wrap {
+  background:var(--c-panel); border:1px solid var(--c-border);
+  border-radius:6px; padding:12px 16px;
+}
+.prog-label {
+  font-family:var(--mono); font-size:12px; color:var(--c-muted);
+  margin-bottom:8px; display:flex; justify-content:space-between;
+}
+.prog-track { height:8px; background:var(--c-bg2); border-radius:4px; overflow:hidden; border:1px solid var(--c-border); }
+.prog-fill  { height:100%; background:linear-gradient(90deg,var(--c-accent),var(--c-purple)); width:33%; border-radius:4px; }
+
+/* ══════════════════════════════════════════
+   HUD EM JOGO
+══════════════════════════════════════════ */
+#s-hud {
+  /* Os valores de padding e gap que você usou no style inline */
+  padding: 12px 18px 10px;
+  flex-direction: column;
+  gap: 8px;
+  overflow: hidden; /* Evita o scroll na tela de HUD */
+  /* Removemos o display: flex daqui! */
+}
+
+/* Criamos essa regra para o flex só entrar em ação quando a tela for ativada */
+#s-hud.active {
+  display: flex;
+}
+.hud-screen-label {
+  font-family:var(--pixel); font-size:7px;
+  color:var(--c-accent); letter-spacing:2px;
+}
+
+/* The whole HUD frame fills remaining space */
+.hud-frame {
+  flex: 1;
+  background: var(--c-bg2);
+  border: 1px solid var(--c-border);
+  border-radius: 8px;
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── HUD Top Bar ── */
+.hud-top {
+  background: rgba(0,0,0,.7);
+  padding: 8px 14px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  border-bottom: 1px solid var(--c-border);
+  flex-shrink: 0;
+  flex-wrap: nowrap;
+}
+
+/* each HUD group */
+.hud-group { display:flex; flex-direction:column; gap:4px; }
+.hud-group.grow { flex:1; min-width:0; }
+.hud-group.right { margin-left:auto; text-align:right; }
+
+.hud-label {
+  font-family:var(--pixel); font-size:5.5px;
+  color:var(--c-muted); letter-spacing:1px; white-space:nowrap;
+}
+
+/* Lives */
+.hearts { display:flex; gap:5px; }
+.heart  { color:var(--c-red); font-size:16px; line-height:1; }
+.heart.empty { color:var(--c-border); }
+
+/* HP bar */
+.health-track {
+  height:11px; background:var(--c-bg);
+  border-radius:5px; border:1px solid var(--c-border); overflow:hidden;
+  min-width: 140px;
+}
+.health-fill {
+  height:100%;
+  background:linear-gradient(90deg,var(--c-red),#ff7b00);
+  width:75%; border-radius:5px; transition:width .3s;
+}
+
+/* Score */
+.score-val {
+  font-family:var(--pixel); font-size:14px;
+  color:var(--c-yellow); letter-spacing:2px; white-space:nowrap;
+}
+
+/* Phase */
+.phase-indicator {
+  font-family:var(--pixel); font-size:9px; color:var(--c-accent); white-space:nowrap;
+}
+
+/* Floating HUD buttons (top-right of game area) */
+.hud-btns {
+  position: absolute;
+  top: 10px; right: 12px;
+  display: flex; gap: 6px;
+  z-index: 50;
+}
+.hud-icon-btn {
+  background: rgba(0,0,0,.65);
+  border: 1px solid var(--c-border);
+  color: var(--c-muted);
+  padding: 5px 10px;
+  font-family: var(--pixel);
+  font-size: 7px;
+  cursor: pointer;
+  border-radius: 3px;
+  transition: all .15s;
+  white-space: nowrap;
+}
+.hud-icon-btn.inv  { border-color:var(--c-yellow); color:var(--c-yellow); }
+.hud-icon-btn.inv:hover  { background:rgba(255,225,53,.12); }
+.hud-icon-btn.pause{ border-color:var(--c-accent); color:var(--c-accent); }
+.hud-icon-btn.pause:hover{ background:rgba(0,229,255,.12); }
+
+/* ── GAME AREA ── */
+.game-area {
+  flex: 1;
+  background: #0c1428;
+  position: relative;
+  overflow: hidden;
+}
+.game-sky {
+  position:absolute; inset:0;
+  background:linear-gradient(180deg,#081020 0%,#1a2855 100%);
+}
+.game-ground {
+  position:absolute; bottom:0; left:0; right:0;
+  height:44px; background:#2d4a1e; border-top:3px solid #4a7a2e;
+}
+.platform {
+  position:absolute; height:14px;
+  background:#3d5c28; border-top:3px solid #5a8a3e; border-radius:2px;
+}
+.player-sprite {
+  position:absolute; width:28px; height:36px;
+  bottom:44px; left:100px;
+}
+.enemy-sprite {
+  position:absolute; width:26px; height:32px;
+}
+.collectible {
+  position:absolute; border-radius:50%;
+  background:var(--c-yellow); box-shadow:0 0 8px var(--c-yellow);
+}
+
+/* ── HUD BOTTOM (controls) ── */
+.hud-bottom {
+  background:rgba(0,0,0,.55);
+  padding:7px 14px;
+  border-top:1px solid var(--c-border);
+  display:flex; gap:14px; align-items:center; flex-shrink:0; flex-wrap:wrap;
+}
+.control-hint {
+  font-family:var(--pixel); font-size:6px;
+  color:var(--c-muted); display:flex; align-items:center; gap:5px;
+}
+.key-badge {
+  background:var(--c-panel); border:1px solid var(--c-border);
+  border-radius:3px; padding:2px 5px;
+  font-size:7px; color:var(--c-text); font-family:var(--mono);
+}
+
+/* ── Demo action buttons ── */
+.demo-btns { display:flex; gap:8px; flex-shrink:0; }
+
+/* ══════════════════════════════════════════
+   PAUSE OVERLAY
+══════════════════════════════════════════ */
+#pause-overlay {
+  display:none; position:absolute; inset:0;
+  background:rgba(4,4,14,.93); backdrop-filter:blur(3px);
+  z-index:1000; flex-direction:column; align-items:center; justify-content:center; gap:0;
+}
+#pause-overlay.active { display:flex; }
+
+.pause-title {
+  font-family:var(--pixel); font-size:clamp(12px,1.4vw,20px);
+  color:var(--c-accent); letter-spacing:5px; margin-bottom:6px;
+  text-shadow:0 0 18px rgba(0,229,255,.5);
+}
+.pause-sub {
+  font-family:var(--mono); font-size:11px; color:var(--c-muted);
+  margin-bottom:28px; letter-spacing:2px;
+}
+.pause-menu-items { display:flex; flex-direction:column; align-items:stretch; gap:9px; width:230px; }
+.pause-menu-btn {
+  font-family:var(--pixel); font-size:8px; padding:11px 16px;
+  background:transparent; border:1px solid var(--c-border); color:var(--c-text);
+  cursor:pointer; letter-spacing:1px; transition:all .15s; text-align:left;
+  position:relative; border-radius:3px;
+}
+.pause-menu-btn::before { content:'▶'; position:absolute; left:10px; opacity:0; font-size:6px; transition:opacity .1s; }
+.pause-menu-btn:hover { border-color:var(--c-accent); color:var(--c-accent); background:rgba(0,229,255,.06); padding-left:26px; }
+.pause-menu-btn:hover::before { opacity:1; }
+.pause-menu-btn.resume { border-color:var(--c-green); color:var(--c-green); }
+.pause-menu-btn.resume:hover { background:rgba(0,255,136,.08); border-color:var(--c-green); }
+.pause-menu-btn.danger { border-color:#3a2030; color:var(--c-red); }
+.pause-menu-btn.danger:hover { background:rgba(255,59,59,.08); border-color:var(--c-red); }
+.pause-divider { height:1px; background:var(--c-border); margin:3px 0; }
+
+/* ══════════════════════════════════════════
+   INVENTORY OVERLAY
+══════════════════════════════════════════ */
+#inventory-overlay {
+  display:none; position:absolute;
+  top:50%; left:50%; transform:translate(-50%,-50%);
+  background:rgba(8,8,20,.97); border:2px solid var(--c-accent);
+  padding:20px 22px; z-index:900; width:500px; max-width:90%;
+  box-shadow:0 0 32px rgba(0,229,255,.2); border-radius:6px;
+}
+#inventory-overlay.active { display:block; }
+
+.inv-header {
+  font-family:var(--pixel); font-size:9px; color:var(--c-accent);
+  margin-bottom:14px; letter-spacing:2px;
+  display:flex; align-items:center; justify-content:space-between;
+}
+.inv-close {
+  background:transparent; border:1px solid var(--c-border);
+  color:var(--c-muted); cursor:pointer; font-family:var(--pixel); font-size:8px;
+  padding:3px 9px; border-radius:3px; transition:all .15s;
+}
+.inv-close:hover { border-color:var(--c-red); color:var(--c-red); }
+
+.inv-section-label {
+  font-family:var(--pixel); font-size:6px; color:var(--c-muted);
+  letter-spacing:1px; margin-bottom:10px; padding-bottom:5px;
+  border-bottom:1px solid var(--c-border);
+}
+.inv-grid {
+  display:grid; grid-template-columns:repeat(5,1fr); gap:8px; margin-bottom:14px;
+}
+.inv-slot {
+  aspect-ratio:1; background:rgba(255,255,255,.03);
+  border:1px solid var(--c-border); border-radius:4px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:20px; cursor:pointer; transition:all .15s; position:relative;
+}
+.inv-slot:hover { border-color:var(--c-yellow); background:rgba(255,225,53,.07); }
+.inv-slot.has-item { border-color:var(--c-muted); }
+.inv-slot.has-item:hover { border-color:var(--c-yellow); }
+.inv-slot .qty {
+  position:absolute; bottom:2px; right:4px;
+  font-family:var(--pixel); font-size:6px; color:var(--c-yellow);
+}
+.inv-info {
+  background:var(--c-panel); border:1px solid var(--c-border);
+  border-radius:4px; padding:9px 12px;
+  font-family:var(--mono); font-size:11px; color:var(--c-muted); text-align:center;
+}
+
+/* ══════════════════════════════════════════
+   DAMAGE BLINK — player outline flashes red
+══════════════════════════════════════════ */
+@keyframes damage-blink {
+  0%   { filter: drop-shadow(0 0 0px transparent); }
+  30%  { filter: drop-shadow(0 0 6px #ff3b3b) drop-shadow(0 0 12px #ff0000); }
+  70%  { filter: drop-shadow(0 0 4px #ff3b3b); }
+  100% { filter: drop-shadow(0 0 0px transparent); }
+}
+.damage-blink { animation: damage-blink 0.45s ease-out forwards; }
+
+/* ══════════════════════════════════════════
+   TUTORIAL
+══════════════════════════════════════════ */
+.tutorial-wrap {
+  display:grid; grid-template-columns:1fr 1fr; gap:12px;
+}
+.tut-card {
+  background:var(--c-panel); border:1px solid var(--c-border);
+  border-radius:6px; padding:14px;
+}
+.tut-icon { font-size:26px; margin-bottom:8px; }
+.tut-title { font-family:var(--pixel); font-size:7px; color:var(--c-accent); margin-bottom:7px; letter-spacing:1px; }
+.tut-desc  { font-family:var(--mono); font-size:12px; color:var(--c-muted); line-height:1.6; }
+
+.control-map {
+  background:var(--c-panel); border:1px solid var(--c-border);
+  border-radius:6px; padding:14px; margin-bottom:12px;
+}
+.ctrl-title { font-family:var(--pixel); font-size:7px; color:var(--c-muted); margin-bottom:10px; letter-spacing:1px; }
+.key-row {
+  display:flex; align-items:center; gap:12px; padding:7px 0;
+  border-bottom:1px solid var(--c-border); font-family:var(--mono); font-size:13px;
+}
+.key-row:last-child { border-bottom:none; }
+.key-label { color:var(--c-muted); flex:1; }
+.key-badges { display:flex; gap:6px; }
+.key-b {
+  background:var(--c-bg2); border:1px solid var(--c-border); border-bottom:3px solid var(--c-border);
+  border-radius:4px; padding:4px 10px; font-size:11px; color:var(--c-text); font-family:var(--mono);
+}
+
+/* ══════════════════════════════════════════
+   CONFIGURAÇÕES
+══════════════════════════════════════════ */
+.settings-section {
+  background:var(--c-panel); border:1px solid var(--c-border);
+  border-radius:6px; padding:14px 18px; margin-bottom:14px;
+}
+.settings-section-title {
+  font-family:var(--pixel); font-size:7px; color:var(--c-accent);
+  letter-spacing:2px; margin-bottom:14px; padding-bottom:7px;
+  border-bottom:1px solid var(--c-border);
+}
+.setting-row {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:9px 0; border-bottom:1px solid rgba(42,42,74,.5);
+  gap:16px;
+}
+.setting-row:last-child { border-bottom:none; }
+.setting-label { font-family:var(--mono); font-size:13px; color:var(--c-text); }
+.setting-desc  { font-family:var(--mono); font-size:11px; color:var(--c-muted); margin-top:2px; }
+.setting-control { display:flex; align-items:center; gap:10px; flex-shrink:0; }
+
+.toggle {
+  width:38px; height:20px; background:var(--c-border); border-radius:10px;
+  cursor:pointer; position:relative; transition:background .2s; border:1px solid var(--c-border);
+}
+.toggle.on { background:var(--c-accent); }
+.toggle::after {
+  content:''; position:absolute; width:14px; height:14px;
+  background:white; border-radius:50%; top:2px; left:2px; transition:left .2s;
+}
+.toggle.on::after { left:20px; }
+
+.vol-slider {
+  -webkit-appearance:none; appearance:none;
+  width:110px; height:4px; background:var(--c-border); border-radius:2px; outline:none; cursor:pointer;
+}
+.vol-slider::-webkit-slider-thumb {
+  -webkit-appearance:none; appearance:none;
+  width:14px; height:14px; border-radius:50%; background:var(--c-accent); cursor:pointer;
+}
+.vol-val { font-family:var(--pixel); font-size:7px; color:var(--c-accent); min-width:32px; text-align:right; }
+
+.setting-select {
+  background:var(--c-bg2); border:1px solid var(--c-border); color:var(--c-text);
+  font-family:var(--mono); font-size:12px; padding:5px 10px; border-radius:3px; cursor:pointer; outline:none;
+}
+.setting-select:focus { border-color:var(--c-accent); }
+
+.settings-reset-row { display:flex; justify-content:flex-end; gap:10px; margin-top:4px; }
+.save-btn  { font-family:var(--pixel); font-size:7px; padding:10px 20px; background:transparent; border:2px solid var(--c-green); color:var(--c-green); cursor:pointer; border-radius:4px; transition:all .15s; }
+.save-btn:hover  { background:rgba(0,255,136,.1); }
+.reset-btn { font-family:var(--pixel); font-size:7px; padding:10px 20px; background:transparent; border:1px solid var(--c-border); color:var(--c-muted); cursor:pointer; border-radius:4px; transition:all .15s; }
+.reset-btn:hover { border-color:var(--c-red); color:var(--c-red); }
+
+/* ══════════════════════════════════════════
+   CRÉDITOS
+══════════════════════════════════════════ */
+.credits-header { text-align:center; margin-bottom:22px; }
+.credits-title  { font-family:var(--pixel); font-size:10px; color:var(--c-yellow); letter-spacing:2px; margin-bottom:6px; }
+.credits-sub    { font-family:var(--mono); font-size:11px; color:var(--c-muted); }
+.credits-section{ margin-bottom:18px; }
+.credits-section-title {
+  font-family:var(--pixel); font-size:7px; color:var(--c-accent);
+  letter-spacing:2px; margin-bottom:10px; padding-bottom:6px; border-bottom:1px solid var(--c-border);
+}
+.member-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; }
+.member-card {
+  background:var(--c-panel); border:1px solid var(--c-border); border-radius:5px;
+  padding:10px 12px; display:flex; align-items:center; gap:10px;
+}
+.member-avatar {
+  width:32px; height:32px; border-radius:50%; background:var(--c-bg2); border:1px solid var(--c-accent);
+  display:flex; align-items:center; justify-content:center;
+  font-family:var(--pixel); font-size:7px; color:var(--c-accent); flex-shrink:0;
+}
+.member-name { font-family:var(--mono); font-size:13px; color:var(--c-text); line-height:1.5; }
+.member-role { font-family:var(--mono); font-size:11px; color:var(--c-muted); }
+.edu-box {
+  background:var(--c-panel); border:1px solid var(--c-border);
+  border-left:3px solid var(--c-yellow); border-radius:5px; padding:12px 16px;
+  font-family:var(--mono); font-size:13px; color:var(--c-muted); line-height:1.7;
+}
+.edu-box strong { color:var(--c-text); font-weight:normal; }
+
+/* ══════════════════════════════════════════
+   GAME OVER
+══════════════════════════════════════════ */
+.gameover-wrap { text-align:center; padding:48px 20px; }
+.gameover-title {
+  font-family:var(--pixel); font-size:clamp(16px,2vw,28px);
+  color:var(--c-red); letter-spacing:4px; margin-bottom:8px;
+  text-shadow:0 0 22px rgba(255,59,59,.4);
+}
+.gameover-sub { font-family:var(--pixel); font-size:7px; color:var(--c-muted); margin-bottom:36px; }
+.stats-row { display:flex; justify-content:center; gap:24px; margin-bottom:36px; }
+.stat-box {
+  background:var(--c-panel); border:1px solid var(--c-border);
+  border-radius:6px; padding:14px 22px; text-align:center; min-width:96px;
+}
+.stat-val { font-family:var(--pixel); font-size:16px; color:var(--c-yellow); display:block; margin-bottom:4px; }
+.stat-lbl { font-family:var(--pixel); font-size:6px; color:var(--c-muted); }
+.action-row { display:flex; justify-content:center; gap:12px; flex-wrap:wrap; }
+
+.act-btn {
+  font-family:var(--pixel); font-size:7px; padding:12px 22px;
+  background:transparent; cursor:pointer; border-radius:4px; letter-spacing:1px; transition:all .15s;
+}
+.act-btn.primary   { border:2px solid var(--c-accent); color:var(--c-accent); }
+.act-btn.primary:hover   { background:rgba(0,229,255,.1); }
+.act-btn.secondary { border:1px solid var(--c-border); color:var(--c-muted); }
+.act-btn.secondary:hover { border-color:#444466; color:var(--c-text); }
+
+/* ── BACK BUTTON ── */
+.back-btn {
+  display:inline-flex; align-items:center; gap:8px;
+  margin-top:18px; padding:10px 18px;
+  font-family:var(--pixel); font-size:8px; background:rgba(255,255,255,.03);
+  border:1px solid var(--c-border); color:var(--c-muted);
+  cursor:pointer; text-transform:uppercase; transition:all .2s; border-radius:4px;
+}
+.back-btn:hover { border-color:var(--c-accent); color:var(--c-accent); background:rgba(0,229,255,.08); }
+
+/* screen title labels */
+.screen-label {
+  font-family:var(--pixel); font-size:9px;
+  color:var(--c-accent); letter-spacing:2px; margin-bottom:16px;
+}
+</style>
+</head>
+<body>
+
+<div class="game-shell" id="gameShell">
+
+  <!-- ── NAV ── -->
+  <nav class="nav">
+    <button class="active" onclick="show('menu')">Menu</button>
+    <button onclick="show('fases')">Fases</button>
+    <button onclick="show('hud')">HUD em Jogo</button>
+    <button onclick="show('tutorial')">Tutorial</button>
+    <button onclick="show('config')">Configurações</button>
+    <button onclick="show('creditos')">Créditos</button>
+    <button onclick="show('gameover')">Game Over</button>
+  </nav>
+
+  <!-- ════════════════════════════════════════
+       MENU PRINCIPAL
+  ════════════════════════════════════════ -->
+  <div class="screen active" id="s-menu">
+    <div class="menu-bg">
+      <div class="stars" id="starfield"></div>
+
+      <div class="game-logo">CORE <span>IMPACT</span></div>
+      <div class="logo-sub">PROJETO DE EXTENSÃO — UNIPAC 2026</div>
+
+      <div class="platform-art">
+        <svg viewBox="0 0 380 110" xmlns="http://www.w3.org/2000/svg">
+          <rect x="0" y="84" width="380" height="12" fill="#2d4a1e" rx="2"/>
+          <rect x="0" y="84" width="380" height="3" fill="#4a7a2e" rx="1"/>
+          <rect x="60" y="58" width="80" height="12" fill="#3d5c28" rx="2"/>
+          <rect x="60" y="58" width="80" height="3" fill="#5a8a3e" rx="1"/>
+          <rect x="210" y="40" width="70" height="12" fill="#3d5c28" rx="2"/>
+          <rect x="210" y="40" width="70" height="3" fill="#5a8a3e" rx="1"/>
+          <!-- player -->
+          <rect x="90" y="38" width="20" height="20" fill="#4fc3f7" rx="3"/>
+          <rect x="93" y="41" width="6" height="6" fill="#0d47a1" rx="1"/>
+          <rect x="101" y="41" width="6" height="6" fill="#0d47a1" rx="1"/>
+          <rect x="90" y="58" width="7" height="12" fill="#4fc3f7" rx="1"/>
+          <rect x="103" y="58" width="7" height="12" fill="#4fc3f7" rx="1"/>
+          <!-- enemy on platform -->
+          <rect x="230" y="22" width="18" height="18" fill="#ef5350" rx="3"/>
+          <rect x="233" y="26" width="5" height="5" fill="#b71c1c" rx="1"/>
+          <rect x="240" y="26" width="5" height="5" fill="#b71c1c" rx="1"/>
+          <rect x="234" y="34" width="10" height="2" fill="#b71c1c" rx="1"/>
+          <rect x="230" y="40" width="6" height="9" fill="#c62828" rx="1"/>
+          <rect x="242" y="40" width="6" height="9" fill="#c62828" rx="1"/>
+          <!-- coins -->
+          <circle cx="300" cy="74" r="6" fill="#ffe135"/>
+          <circle cx="318" cy="74" r="6" fill="#ffe135"/>
+          <!-- score text -->
+          <text x="12" y="22" font-family="'Press Start 2P'" font-size="7" fill="#ffe135">SCORE: 002350</text>
+          <text x="240" y="22" font-family="'Press Start 2P'" font-size="7" fill="#00e5ff">FASE 1</text>
+        </svg>
+      </div>
+
+      <div class="menu-items">
+        <button class="menu-btn primary" onclick="show('fases')">▶ INICIAR JOGO</button>
+        <button class="menu-btn" onclick="show('tutorial')">TUTORIAL</button>
+        <button class="menu-btn" onclick="show('config')">CONFIGURAÇÕES</button>
+        <button class="menu-btn" onclick="show('creditos')">CRÉDITOS</button>
+      </div>
+
+      <div class="version-tag">v0.01 — Engenharia de Software — UNIPAC</div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════
+       SELEÇÃO DE FASES
+  ════════════════════════════════════════ -->
+  <div class="screen" id="s-fases">
+    <div class="screen-label">▶ SELECIONAR FASE</div>
+    <div class="phase-grid">
+      <div class="phase-card completed" onclick="show('hud')">
+        <div class="phase-num">01</div>
+        <div class="phase-name">FLORESTA<br>INICIAL</div>
+        <div class="phase-stars">★★★</div>
+      </div>
+      <div class="phase-card completed" onclick="show('hud')">
+        <div class="phase-num">02</div>
+        <div class="phase-name">CAVERNAS<br>SOMBRIAS</div>
+        <div class="phase-stars">★★<span class="empty">★</span></div>
+      </div>
+      <div class="phase-card" onclick="show('hud')">
+        <div class="phase-num">03</div>
+        <div class="phase-name">PLATAFORMAS<br>FLUTUANTES</div>
+        <div class="phase-stars"><span class="empty">★★★</span></div>
+      </div>
+      <div class="phase-card locked">
+        <div class="phase-lock">🔒</div>
+        <div class="phase-num" style="color:var(--c-muted)">04</div>
+        <div class="phase-name" style="color:var(--c-muted)">MUNDO<br>GELADO</div>
+      </div>
+      <div class="phase-card locked">
+        <div class="phase-lock">🔒</div>
+        <div class="phase-num" style="color:var(--c-muted)">05</div>
+        <div class="phase-name" style="color:var(--c-muted)">CASTELO<br>FINAL</div>
+      </div>
+      <div class="phase-card locked" style="display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;">
+        <div style="font-family:var(--pixel);font-size:7px;color:var(--c-muted)">EM BREVE</div>
+        <div style="font-size:22px">🚧</div>
+      </div>
+    </div>
+
+    <div class="progress-bar-wrap">
+      <div class="prog-label">
+        <span>Progresso geral</span>
+        <span style="color:var(--c-accent)">2 / 5 fases concluídas</span>
+      </div>
+      <div class="prog-track"><div class="prog-fill"></div></div>
+    </div>
+
+    <button class="back-btn" onclick="show('menu')">◀ MENU PRINCIPAL</button>
+  </div>
+
+  <!-- ════════════════════════════════════════
+       HUD EM JOGO
+  ════════════════════════════════════════ -->
+  <div class="screen" id="s-hud">
+  <div style="font-family:var(--pixel);font-size:7px;color:var(--c-accent);letter-spacing:2px;flex-shrink:0;">▶ HUD — INTERFACE EM JOGO</div>
+    <div class="hud-frame">
+
+      <!-- PAUSE OVERLAY -->
+      <div id="pause-overlay">
+        <div class="pause-title">⏸ PAUSADO</div>
+        <div class="pause-sub">CORE IMPACT — FASE 03</div>
+        <div class="pause-menu-items">
+          <button class="pause-menu-btn resume" onclick="togglePause()">▶ CONTINUAR</button>
+          <div class="pause-divider"></div>
+          <button class="pause-menu-btn" onclick="closePauseOpenInv()">🎒 INVENTÁRIO</button>
+          <button class="pause-menu-btn" onclick="togglePause();show('config')">⚙ CONFIGURAÇÕES</button>
+          <div class="pause-divider"></div>
+          <button class="pause-menu-btn" onclick="togglePause();show('fases')">↩ SELEÇÃO DE FASES</button>
+          <button class="pause-menu-btn danger" onclick="togglePause();show('menu')">✕ MENU PRINCIPAL</button>
+        </div>
+      </div>
+
+      <!-- INVENTORY OVERLAY -->
+      <div id="inventory-overlay">
+        <div class="inv-header">
+          <span>🎒 INVENTÁRIO</span>
+          <button class="inv-close" onclick="toggleInventory()">✕ FECHAR</button>
+        </div>
+        <div class="inv-section-label">ITENS (10 / 15 slots)</div>
+        <div class="inv-grid">
+          <div class="inv-slot has-item" title="Poção de Vida">❤️<span class="qty">x3</span></div>
+          <div class="inv-slot has-item" title="Bomba">💣<span class="qty">x1</span></div>
+          <div class="inv-slot has-item" title="Moedas">🪙<span class="qty">x8</span></div>
+          <div class="inv-slot has-item" title="Chave">🗝️<span class="qty">x1</span></div>
+          <div class="inv-slot has-item" title="Escudo">🛡️<span class="qty">x1</span></div>
+          <div class="inv-slot has-item" title="Espada">⚔️<span class="qty">x1</span></div>
+          <div class="inv-slot has-item" title="Poção de Força">⚗️<span class="qty">x2</span></div>
+          <div class="inv-slot has-item" title="Cristal">💎<span class="qty">x4</span></div>
+          <div class="inv-slot has-item" title="Mapa">🗺️<span class="qty">x1</span></div>
+          <div class="inv-slot has-item" title="Bússola">🧭<span class="qty">x1</span></div>
+          <div class="inv-slot"></div>
+          <div class="inv-slot"></div>
+          <div class="inv-slot"></div>
+          <div class="inv-slot"></div>
+          <div class="inv-slot"></div>
+        </div>
+        <div class="inv-info">Clique em um item para usar &nbsp;·&nbsp; [I] para fechar</div>
+      </div>
+
+      <!-- ── HUD TOP BAR ── -->
+      <div class="hud-top">
+        <!-- Vidas -->
+        <div class="hud-group">
+          <span class="hud-label">VIDAS</span>
+          <div class="hearts">
+            <span class="heart">♥</span>
+            <span class="heart">♥</span>
+            <span class="heart">♥</span>
+            <span class="heart empty">♥</span>
+            <span class="heart empty">♥</span>
+          </div>
+        </div>
+
+        <!-- HP -->
+        <div class="hud-group grow">
+          <span class="hud-label">HP</span>
+          <div class="health-track">
+            <div class="health-fill" id="hp-bar"></div>
+          </div>
+        </div>
+
+        <!-- Score -->
+        <div class="hud-group" style="text-align:center;">
+          <span class="hud-label">PONTUAÇÃO</span>
+          <div class="score-val" id="score-display">002350</div>
+        </div>
+
+        <!-- Fase -->
+        <div class="hud-group right">
+          <span class="hud-label">FASE</span>
+          <div class="phase-indicator">03 / 05</div>
+        </div>
+
+        <!-- Botões de ação (dentro do top bar, à direita) -->
+        <div style="display:flex;gap:6px;margin-left:8px;flex-shrink:0;">
+          <button class="hud-icon-btn inv" onclick="toggleInventory()">[I] INV</button>
+          <button class="hud-icon-btn pause" onclick="togglePause()">[ESC] ⏸</button>
+        </div>
+      </div>
+
+      <!-- ── GAME AREA ── -->
+      <div class="game-area" id="game-area">
+        <div class="game-sky"></div>
+
+        <!-- Ground -->
+        <div class="game-ground"></div>
+
+        <!-- Platforms -->
+        <!-- Platform A: bottom=44+14=58px (on top of ground area), left -->
+        <div class="platform" style="bottom:94px; left:70px; width:100px;"></div>
+        <!-- Platform B: mid height, center -->
+        <div class="platform" style="bottom:140px; left:210px; width:80px;"></div>
+        <!-- Platform C: right -->
+        <div class="platform" style="bottom:80px; right:60px; width:90px;"></div>
+
+        <!-- Collectibles on platform A -->
+        <div class="collectible" style="bottom:110px; left:95px; width:11px; height:11px;"></div>
+        <div class="collectible" style="bottom:110px; left:114px; width:11px; height:11px;"></div>
+        <!-- Collectible on platform B -->
+        <div class="collectible" style="bottom:156px; left:235px; width:11px; height:11px;"></div>
+
+        <!-- Player on ground -->
+        <svg class="player-sprite" id="player-svg" viewBox="0 0 24 32" xmlns="http://www.w3.org/2000/svg">
+          <rect x="3" y="0" width="18" height="18" fill="#4fc3f7" rx="3"/>
+          <rect x="6" y="4" width="5" height="5" fill="#0d47a1" rx="1"/>
+          <rect x="13" y="4" width="5" height="5" fill="#0d47a1" rx="1"/>
+          <rect x="8" y="11" width="8" height="2" fill="#0d47a1" rx="1"/>
+          <rect x="3" y="18" width="8" height="10" fill="#1565c0" rx="1"/>
+          <rect x="13" y="18" width="8" height="10" fill="#1565c0" rx="1"/>
+          <rect x="3" y="28" width="8" height="4" fill="#4fc3f7" rx="1"/>
+          <rect x="13" y="28" width="8" height="4" fill="#4fc3f7" rx="1"/>
+        </svg>
+
+        <!-- Enemy on platform C — bottom = platform bottom(80) + platform height(14) + 3px border = 97px -->
+        <svg class="enemy-sprite" style="bottom:97px; right:80px;" viewBox="0 0 22 28" xmlns="http://www.w3.org/2000/svg">
+          <rect x="2" y="0" width="18" height="18" fill="#ef5350" rx="3"/>
+          <rect x="5" y="4" width="5" height="5" fill="#b71c1c" rx="1"/>
+          <rect x="12" y="4" width="5" height="5" fill="#b71c1c" rx="1"/>
+          <rect x="6" y="12" width="10" height="2" fill="#b71c1c" rx="1"/>
+          <rect x="2" y="18" width="7" height="8" fill="#c62828" rx="1"/>
+          <rect x="13" y="18" width="7" height="8" fill="#c62828" rx="1"/>
+        </svg>
+
+        <!-- +50 pts pickup label -->
+        <div style="position:absolute;top:10px;left:12px;background:rgba(0,0,0,.55);border:1px solid var(--c-border);border-radius:4px;padding:4px 8px;font-family:var(--pixel);font-size:6px;color:var(--c-yellow);">+50 PTS</div>
+      </div>
+
+      <!-- ── HUD BOTTOM ── -->
+      <div class="hud-bottom">
+        <div class="control-hint"><span class="key-badge">←→</span> Mover</div>
+        <div class="control-hint"><span class="key-badge">↑</span> Pular</div>
+        <div class="control-hint"><span class="key-badge">Z</span> Atacar</div>
+        <div class="control-hint"><span class="key-badge">I</span> Inventário</div>
+        <div class="control-hint"><span class="key-badge">ESC</span> Pausar</div>
+      </div>
+    </div>
+
+    <!-- Demo controls -->
+    <div class="demo-btns">
+      <button class="act-btn primary"   onclick="adjustHP(10)">+ HP</button>
+      <button class="act-btn secondary" onclick="adjustHP(-10)">− HP (dano)</button>
+      <button class="act-btn secondary" onclick="addScore()">+ Score</button>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════
+       TUTORIAL
+  ════════════════════════════════════════ -->
+  <div class="screen" id="s-tutorial">
+    <div class="screen-label">▶ TUTORIAL INTEGRADO</div>
+
+    <div class="control-map">
+      <div class="ctrl-title">CONTROLES</div>
+      <div class="key-row"><span class="key-label">Mover esquerda / direita</span><div class="key-badges"><span class="key-b">←</span><span class="key-b">→</span></div></div>
+      <div class="key-row"><span class="key-label">Pular</span><div class="key-badges"><span class="key-b">↑</span><span class="key-b">Espaço</span></div></div>
+      <div class="key-row"><span class="key-label">Atacar</span><div class="key-badges"><span class="key-b">Z</span></div></div>
+      <div class="key-row"><span class="key-label">Abrir Inventário</span><div class="key-badges"><span class="key-b">I</span></div></div>
+      <div class="key-row"><span class="key-label">Pausar</span><div class="key-badges"><span class="key-b">ESC</span></div></div>
+    </div>
+
+    <div class="tutorial-wrap">
+      <div class="tut-card"><div class="tut-icon">⚔️</div><div class="tut-title">INIMIGOS</div><div class="tut-desc">Evite o contato direto com inimigos. Cada colisão reduz sua vida. Elimine-os com ataques ou saltando por cima.</div></div>
+      <div class="tut-card"><div class="tut-icon">⭐</div><div class="tut-title">PONTUAÇÃO</div><div class="tut-desc">Colete itens e elimine inimigos para ganhar pontos. Complete a fase no menor tempo possível para bônus extra.</div></div>
+      <div class="tut-card"><div class="tut-icon">♥</div><div class="tut-title">VIDAS & HP</div><div class="tut-desc">Você começa com 3 vidas. Ao zerar o HP você perde uma vida. Sem vidas restantes = Game Over.</div></div>
+      <div class="tut-card"><div class="tut-icon">🎒</div><div class="tut-title">INVENTÁRIO</div><div class="tut-desc">Pressione [I] para abrir o inventário. Guarde poções, chaves e itens especiais encontrados durante as fases.</div></div>
+      <div class="tut-card"><div class="tut-icon">💾</div><div class="tut-title">SALVAR PROGRESSO</div><div class="tut-desc">Progresso salvo automaticamente ao concluir cada fase. Retorne do ponto salvo a qualquer momento.</div></div>
+      <div class="tut-card"><div class="tut-icon">⏸</div><div class="tut-title">MENU DE PAUSA</div><div class="tut-desc">Pressione [ESC] para pausar. No menu de pausa acesse inventário, configurações ou saia da fase.</div></div>
+    </div>
+
+    <button class="back-btn" onclick="show('menu')">◀ MENU PRINCIPAL</button>
+  </div>
+
+  <!-- ════════════════════════════════════════
+       CONFIGURAÇÕES
+  ════════════════════════════════════════ -->
+  <div class="screen" id="s-config">
+    <div class="screen-label">▶ CONFIGURAÇÕES</div>
+
+    <div class="settings-section">
+      <div class="settings-section-title">🔊 ÁUDIO</div>
+      <div class="setting-row">
+        <div><div class="setting-label">Volume Geral</div><div class="setting-desc">Controla o volume de todo o jogo</div></div>
+        <div class="setting-control">
+          <input type="range" class="vol-slider" min="0" max="100" value="80" oninput="document.getElementById('vm').textContent=this.value+'%'">
+          <span class="vol-val" id="vm">80%</span>
+        </div>
+      </div>
+      <div class="setting-row">
+        <div><div class="setting-label">Música</div><div class="setting-desc">Volume da trilha sonora</div></div>
+        <div class="setting-control">
+          <input type="range" class="vol-slider" min="0" max="100" value="70" oninput="document.getElementById('vmu').textContent=this.value+'%'">
+          <span class="vol-val" id="vmu">70%</span>
+        </div>
+      </div>
+      <div class="setting-row">
+        <div><div class="setting-label">Efeitos Sonoros</div><div class="setting-desc">Sons de ataques, colisões, etc.</div></div>
+        <div class="setting-control">
+          <input type="range" class="vol-slider" min="0" max="100" value="90" oninput="document.getElementById('vsfx').textContent=this.value+'%'">
+          <span class="vol-val" id="vsfx">90%</span>
+        </div>
+      </div>
+      <div class="setting-row">
+        <div><div class="setting-label">Mudo</div><div class="setting-desc">Silenciar todo o áudio</div></div>
+        <div class="setting-control"><div class="toggle" id="t-mute" onclick="toggleSwitch('t-mute')"></div></div>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-section-title">🖥️ GRÁFICOS</div>
+      <div class="setting-row">
+        <div><div class="setting-label">Qualidade Gráfica</div><div class="setting-desc">Afeta desempenho e visual</div></div>
+        <div class="setting-control"><select class="setting-select"><option>Baixa</option><option selected>Média</option><option>Alta</option><option>Ultra</option></select></div>
+      </div>
+      <div class="setting-row">
+        <div><div class="setting-label">Tela Cheia</div><div class="setting-desc">Expandir para tela inteira</div></div>
+        <div class="setting-control"><div class="toggle on" id="t-fs" onclick="toggleSwitch('t-fs')"></div></div>
+      </div>
+      <div class="setting-row">
+        <div><div class="setting-label">Partículas</div><div class="setting-desc">Efeitos de poeira, faíscas e explosões</div></div>
+        <div class="setting-control"><div class="toggle on" id="t-part" onclick="toggleSwitch('t-part')"></div></div>
+      </div>
+      <div class="setting-row">
+        <div><div class="setting-label">Limite de FPS</div><div class="setting-desc">Taxa de quadros por segundo</div></div>
+        <div class="setting-control"><select class="setting-select"><option>30 FPS</option><option selected>60 FPS</option><option>120 FPS</option><option>Ilimitado</option></select></div>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-section-title">🎮 GAMEPLAY</div>
+      <div class="setting-row">
+        <div><div class="setting-label">Dificuldade</div><div class="setting-desc">Afeta dano recebido e inimigos</div></div>
+        <div class="setting-control"><select class="setting-select"><option>Fácil</option><option selected>Normal</option><option>Difícil</option><option>Extremo</option></select></div>
+      </div>
+      <div class="setting-row">
+        <div><div class="setting-label">Vibração</div><div class="setting-desc">Vibração do controle ao tomar dano</div></div>
+        <div class="setting-control"><div class="toggle on" id="t-rumble" onclick="toggleSwitch('t-rumble')"></div></div>
+      </div>
+      <div class="setting-row">
+        <div><div class="setting-label">Mostrar Dicas</div><div class="setting-desc">Exibir dicas de controle durante o jogo</div></div>
+        <div class="setting-control"><div class="toggle on" id="t-hints" onclick="toggleSwitch('t-hints')"></div></div>
+      </div>
+      <div class="setting-row">
+        <div><div class="setting-label">Idioma</div><div class="setting-desc">Idioma do jogo e menus</div></div>
+        <div class="setting-control"><select class="setting-select"><option selected>Português (BR)</option><option>English</option><option>Español</option></select></div>
+      </div>
+    </div>
+
+    <div class="settings-reset-row">
+      <button class="reset-btn" onclick="alert('Configurações restauradas para o padrão.')">↺ RESTAURAR PADRÃO</button>
+      <button class="save-btn"  onclick="alert('Configurações salvas!')">✔ SALVAR</button>
+    </div>
+    <button class="back-btn" onclick="show('menu')">◀ MENU PRINCIPAL</button>
+  </div>
+
+  <!-- ════════════════════════════════════════
+       CRÉDITOS
+  ════════════════════════════════════════ -->
+  <div class="screen" id="s-creditos">
+    <div class="credits-header">
+      <div class="credits-title">CRÉDITOS EDUCATIVOS</div>
+      <div class="credits-sub">Core Impact — Projeto de Extensão UNIPAC 2026</div>
+    </div>
+
+    <div class="credits-section">
+      <div class="credits-section-title">TIME DE DESENVOLVIMENTO — CORE IMPACT</div>
+      <div class="member-grid">
+        <div class="member-card">
+          <div class="member-avatar">CI</div>
+          <div><div class="member-name">Core Impact</div><div class="member-role">Equipe Responsável</div></div>
+        </div>
+        <div class="member-card">
+          <div class="member-avatar" style="border-color:var(--c-yellow);color:var(--c-yellow);">CC</div>
+          <div><div class="member-name">Ciência da Computação</div><div class="member-role">Disciplina: Eng. de Software</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="credits-section">
+      <div class="credits-section-title">INSTITUIÇÃO</div>
+      <div class="edu-box">
+        <strong>Centro Universitário Presidente Antônio Carlos — UNIPAC</strong><br>
+        Curso de Graduação em Ciência da Computação<br>
+        Barbacena — MG<br>
+        <span style="font-size:11px;">www.unipac.br</span>
+      </div>
+    </div>
+
+    <div class="credits-section">
+      <div class="credits-section-title">OBJETIVO EDUCACIONAL</div>
+      <div class="edu-box">
+        Este jogo foi desenvolvido como material didático para demonstrar à comunidade escolar de Barbacena como funcionam os processos lógicos, matemáticos e de engenharia por trás de jogos digitais — incentivando o interesse pela Ciência da Computação.
+      </div>
+    </div>
+
+    <div style="text-align:center;margin-top:18px;">
+      <div style="font-family:var(--pixel);font-size:7px;color:var(--c-muted);letter-spacing:2px;">v0.01 · ABRIL 2026 · TODOS OS DIREITOS RESERVADOS</div>
+    </div>
+
+    <button class="back-btn" onclick="show('menu')">◀ MENU PRINCIPAL</button>
+  </div>
+
+  <!-- ════════════════════════════════════════
+       GAME OVER
+  ════════════════════════════════════════ -->
+  <div class="screen" id="s-gameover">
+    <div class="gameover-wrap">
+      <div class="gameover-title">GAME OVER</div>
+      <div class="gameover-sub">SUAS VIDAS ACABARAM</div>
+      <div class="stats-row">
+        <div class="stat-box"><span class="stat-val">002350</span><span class="stat-lbl">PONTUAÇÃO</span></div>
+        <div class="stat-box"><span class="stat-val">03</span><span class="stat-lbl">FASE</span></div>
+        <div class="stat-box"><span class="stat-val">01:42</span><span class="stat-lbl">TEMPO</span></div>
+      </div>
+      <div class="action-row">
+        <button class="act-btn primary"   onclick="show('fases')">↺ TENTAR NOVAMENTE</button>
+        <button class="act-btn secondary" onclick="show('menu')">MENU PRINCIPAL</button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /game-shell -->
+
+<script>
+/* ── Responsive scale ──────────────────────────────────────── */
+const shell = document.getElementById('gameShell');
+const W = 1280, H = 720;
+
+function scaleShell() {
+  const sw = window.innerWidth;
+  const sh = window.innerHeight;
+  const scale = Math.min(sw / W, sh / H, 1); // never upscale beyond 1
+  shell.style.transform = `scale(${scale})`;
+  // center horizontally; top-align with small top margin
+  const tx = (sw - W * scale) / 2;
+  const ty = Math.max(0, (sh - H * scale) / 2);
+  shell.style.marginLeft  = tx + 'px';
+  shell.style.marginTop   = ty + 'px';
+  // body height to avoid scrollbar on page level
+  document.body.style.height = (H * scale + ty * 2) + 'px';
+}
+
+scaleShell();
+window.addEventListener('resize', scaleShell);
+
+/* ── Navigation ───────────────────────────────────────────── */
+const NAV_LABELS = ['menu','fases','hud','tutorial','config','creditos','gameover'];
+
+function show(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
+  const scr = document.getElementById('s-' + id);
+  if (scr) { scr.classList.add('active'); scr.scrollTop = 0; }
+  const idx = NAV_LABELS.indexOf(id);
+  const btns = document.querySelectorAll('.nav button');
+  if (btns[idx]) btns[idx].classList.add('active');
+}
+
+/* ── Starfield ─────────────────────────────────────────────── */
+const starfield = document.getElementById('starfield');
+for (let i = 0; i < 55; i++) {
+  const s = document.createElement('div');
+  s.className = 'star';
+  s.style.left   = Math.random() * 100 + '%';
+  s.style.top    = Math.random() * 100 + '%';
+  s.style.opacity = (Math.random() * 0.45 + 0.1).toFixed(2);
+  const sz = Math.random() > 0.7 ? 3 : 2;
+  s.style.width = s.style.height = sz + 'px';
+  starfield.appendChild(s);
+}
+
+/* ── HP & Score ────────────────────────────────────────────── */
+let hp = 75, score = 2350;
+
+function adjustHP(delta) {
+  hp = Math.max(0, Math.min(100, hp + delta));
+  const bar = document.getElementById('hp-bar');
+  if (bar) bar.style.width = hp + '%';
+
+  if (delta < 0) {
+    const player = document.getElementById('player-svg');
+    if (player) {
+      player.classList.remove('damage-blink');
+      void player.offsetWidth; // force reflow
+      player.classList.add('damage-blink');
+      player.addEventListener('animationend', () => player.classList.remove('damage-blink'), { once: true });
+    }
+  }
+}
+
+function addScore() {
+  score += 100;
+  const el = document.getElementById('score-display');
+  if (el) el.textContent = String(score).padStart(6, '0');
+}
+
+/* ── Pause ─────────────────────────────────────────────────── */
+function togglePause() {
+  const o = document.getElementById('pause-overlay');
+  if (o) o.classList.toggle('active');
+}
+
+function closePauseOpenInv() {
+  const po = document.getElementById('pause-overlay');
+  if (po) po.classList.remove('active');
+  toggleInventory();
+}
+
+/* ── Inventory ─────────────────────────────────────────────── */
+function toggleInventory() {
+  const inv = document.getElementById('inventory-overlay');
+  if (inv) inv.classList.toggle('active');
+}
+
+/* ── Settings toggles ──────────────────────────────────────── */
+function toggleSwitch(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.toggle('on');
+}
+
+/* ── Keyboard shortcuts ────────────────────────────────────── */
+window.addEventListener('keydown', e => {
+  if (!document.getElementById('s-hud').classList.contains('active')) return;
+  if (e.key === 'Escape') togglePause();
+  if (e.key.toLowerCase() === 'i') toggleInventory();
+});
+</script>
+</body>
+</html>
